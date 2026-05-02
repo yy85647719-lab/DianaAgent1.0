@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getOpenAiConfig, getOpenAiEndpoint, hasOpenAiApiKey } from "../../../lib/server/ai-config";
 import { aiFetch, isAbortError } from "../../../lib/server/ai-fetch";
 
 type GenerateAssetRequest = {
@@ -32,20 +33,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const baseUrl = process.env.DIANA_OPENAI_BASE_URL;
-    const apiKey = process.env.DIANA_OPENAI_API_KEY;
+    const openAiConfig = getOpenAiConfig();
     const model = normalizeImageModel(process.env.DIANA_IMAGE_MODEL);
 
-    if (!baseUrl || !apiKey) {
-      return NextResponse.json({ error: "缺少图片模型环境变量。" }, { status: 500 });
+    if (!hasOpenAiApiKey(openAiConfig)) {
+      return NextResponse.json({ error: "缺少 OPENAI_API_KEY 环境变量。" }, { status: 500 });
     }
 
-    const endpoint = `${baseUrl.replace(/\/$/, "")}/v1/images/generations`;
+    const endpoint = getOpenAiEndpoint("/v1/images/generations", openAiConfig);
     const upstream = await aiFetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${openAiConfig.apiKey}`
       },
       body: JSON.stringify({
         model,

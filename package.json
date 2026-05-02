@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev": "node scripts/run-next-from-realpath.mjs dev",
+    "build": "node scripts/run-next-from-realpath.mjs build",
+    "start": "node scripts/run-next-from-realpath.mjs start"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

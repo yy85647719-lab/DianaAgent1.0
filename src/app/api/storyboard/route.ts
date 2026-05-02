@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getOpenAiConfig, getOpenAiEndpoint, hasOpenAiApiKey } from "../../../lib/server/ai-config";
 import { aiFetch, isAbortError } from "../../../lib/server/ai-fetch";
 
 const PARSE_SECTION_TITLE = "## 可解析分镜任务";
@@ -79,21 +80,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "请输入创作文案后再开始创作。" }, { status: 400 });
     }
 
-    const baseUrl = process.env.DIANA_OPENAI_BASE_URL;
-    const apiKey = process.env.DIANA_OPENAI_API_KEY;
+    const openAiConfig = getOpenAiConfig();
     const model = process.env.DIANA_STORYBOARD_MODEL ?? "gpt-5.5";
 
-    if (!baseUrl || !apiKey) {
+    if (!hasOpenAiApiKey(openAiConfig)) {
       return NextResponse.json(
-        { error: "缺少 DIANA_OPENAI_BASE_URL 或 DIANA_OPENAI_API_KEY 环境变量。" },
+        { error: "缺少 OPENAI_API_KEY 环境变量。" },
         { status: 500 }
       );
     }
 
-    const endpoint = `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
+    const endpoint = getOpenAiEndpoint("/v1/chat/completions", openAiConfig);
     const directorScript = await requestChatCompletion(
       endpoint,
-      apiKey,
+      openAiConfig.apiKey,
       model,
       [
         { role: "system", content: STORYBOARD_SYSTEM_PROMPT },
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "模型没有返回分镜内容。" }, { status: 502 });
     }
 
-    const script = await ensureParseSection(endpoint, apiKey, model, directorScript, copy);
+    const script = await ensureParseSection(endpoint, openAiConfig.apiKey, model, directorScript, copy);
     return NextResponse.json({ script });
   } catch (error) {
     if (isAbortError(error)) {

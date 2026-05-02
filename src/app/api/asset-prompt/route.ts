@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getOpenAiConfig, getOpenAiEndpoint, hasOpenAiApiKey } from "../../../lib/server/ai-config";
 import { aiFetch, isAbortError } from "../../../lib/server/ai-fetch";
 
 type AssetPromptRequest = {
@@ -76,21 +77,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "缺少分镜画面内容。" }, { status: 400 });
     }
 
-    const baseUrl = process.env.DIANA_OPENAI_BASE_URL;
-    const apiKey = process.env.DIANA_OPENAI_API_KEY;
+    const openAiConfig = getOpenAiConfig();
     const model = process.env.DIANA_ASSET_PROMPT_MODEL ?? "gpt-5.5";
 
-    if (!baseUrl || !apiKey) {
-      return NextResponse.json({ error: "缺少模型环境变量。" }, { status: 500 });
+    if (!hasOpenAiApiKey(openAiConfig)) {
+      return NextResponse.json({ error: "缺少 OPENAI_API_KEY 环境变量。" }, { status: 500 });
     }
 
-    const endpoint = `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
+    const endpoint = getOpenAiEndpoint("/v1/chat/completions", openAiConfig);
     const systemPrompt = assetType === "图片" ? IMAGE_SYSTEM_PROMPT : VIDEO_SYSTEM_PROMPT;
     const upstream = await aiFetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`
+        Authorization: `Bearer ${openAiConfig.apiKey}`
       },
       body: JSON.stringify({
         model,
