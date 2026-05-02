@@ -5,3 +5,5 @@ out
 *.log
 .env*.local
 *.tsbuildinfo
+
+.vercel
